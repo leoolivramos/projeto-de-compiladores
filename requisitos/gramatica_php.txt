@@ -1,0 +1,59 @@
+GRAMÁTICA DO PHP SIMPLIFICADO (UFMT)
+
+1. Gramática Original Fornecida:
+------------------------------------------------------------
+PROG          -> <?php  <CMDS>  ?>
+DC            -> <VAR> <MAIS_CMDS>
+VAR           -> <VARS>
+VARS          -> $id<MAIS_VAR>
+MAIS_VAR      -> ,$id<MAIS_VAR> | λ
+TIPO          -> (não se aplica)
+CMDS          -> <CMD><MAIS_CMDS> | <CMD_COND><CMDS> | <DC> | λ
+MAIS_CMDS     -> ;<CMDS>
+CMD_COND      -> if ( <CONDICAO> ) {<CMDS>} <PFALSA>
+               | while ( <CONDICAO> ) {<CMDS>}
+CMD           -> echo $id . PHP_EOL
+               | $id <RESTO_IDENT>
+PFALSA        -> else { <CMDS> } | λ
+RESTO_IDENT   -> = <EXP_IDENT>
+EXP_IDENT     -> <EXPRESSAO> | floatval(readline())
+CONDICAO      -> <EXPRESSAO> <RELACAO> <EXPRESSAO>
+RELACAO       -> == | != | >= | <= | > | <
+EXPRESSAO     -> <TERMO> <OUTROS_TERMOS>
+TERMO         -> <OP_UN> <FATOR> <MAIS_FATORES>
+OP_UN         -> - | λ
+FATOR         -> $id | numero_real | (<EXPRESSAO>)
+OUTROS_TERMOS -> <OP_AD> <TERMO> <OUTROS_TERMOS> | λ
+OP_AD         -> + | -
+MAIS_FATORES  -> <OP_MUL> <FATOR> <MAIS_FATORES> | λ
+OP_MUL        -> * | /
+
+
+2. Análise para o Analisador Descendente Não Recursivo (LL(1)):
+------------------------------------------------------------
+Na regra original:
+CMDS -> <CMD><MAIS_CMDS> | <CMD_COND><CMDS> | <DC> | λ
+
+Tanto <CMD> quanto <DC> começam por $id:
+- Em <CMD>: $id seguido de '=' (atribuição)
+- Em <DC>:  $id seguido de ',' ou ';' (declaração)
+
+Ao calcular os conjuntos FIRST de cada produção alternativa de CMDS, temos $id presente em duas alternativas ao mesmo tempo: FIRST(<CMD><MAIS_CMDS>) e FIRST(<DC>). Isso quebra o determinismo do analisador preditivo não recursivo com lookahead(1).
+
+3. Gramática Fatorada para LL(1):
+------------------------------------------------------------
+Para resolver o conflito sem alterar a linguagem aceita, agrupamos os ramos que iniciam por $id e aproveitamos que tanto comandos quanto declarações terminam com ';' (<MAIS_CMDS>):
+
+CMDS        -> $id <RESTO_ID> <MAIS_CMDS>
+             | echo $id . PHP_EOL <MAIS_CMDS>
+             | <CMD_COND> <CMDS>
+             | λ
+
+RESTO_ID    -> = <EXP_IDENT>       (atribuição)
+             | ,$id <MAIS_VAR>     (declaração múltipla)
+             | λ                   (declaração simples de uma variável)
+
+MAIS_VAR    -> ,$id <MAIS_VAR> | λ
+MAIS_CMDS   -> ;<CMDS>
+
+Com essa alteração, os conjuntos FIRST e FOLLOW ficam disjuntos e a tabela preditiva M fica livre de qualquer conflito.
