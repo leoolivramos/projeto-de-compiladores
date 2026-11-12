@@ -20,20 +20,29 @@ class NaoTerminal:
     FATOR = "FATOR"
 
 
-# gramatica fatorada (evita conflito FIRST/FIRST em $id para declaracao vs atribuicao)
+class AcaoSemantica:
+    ID_VISTO = "#ID_VISTO"
+    DECL_UNICA = "#DECL_UNICA"
+    DECL_PRIMEIRA = "#DECL_PRIMEIRA"
+    DECL_SEGUINTE = "#DECL_SEGUINTE"
+    VERIFICA_ATRIB = "#VERIFICA_ATRIB"
+    VERIFICA_ID = "#VERIFICA_ID"
+
+
+# gramatica fatorada com marcadores de checagem semantica
 PRODUCOES = {
     1: [TokenType.TAG_OPEN, NaoTerminal.CMDS, TokenType.TAG_CLOSE],
-    2: [TokenType.ID, NaoTerminal.RESTO_ID, NaoTerminal.MAIS_CMDS],
-    3: [TokenType.ECHO, TokenType.ID, TokenType.PONTO, TokenType.PHP_EOL, NaoTerminal.MAIS_CMDS],
+    2: [TokenType.ID, AcaoSemantica.ID_VISTO, NaoTerminal.RESTO_ID, NaoTerminal.MAIS_CMDS],
+    3: [TokenType.ECHO, TokenType.ID, AcaoSemantica.VERIFICA_ID, TokenType.PONTO, TokenType.PHP_EOL, NaoTerminal.MAIS_CMDS],
     4: [NaoTerminal.CMD_COND, NaoTerminal.CMDS],
     5: [],  # lambda
 
     # resto_id: decide entre atribuicao (=) ou declaracao de variaveis (, ou ;)
-    6: [TokenType.ATRIB, NaoTerminal.EXP_IDENT],
-    7: [TokenType.VIRGULA, TokenType.ID, NaoTerminal.MAIS_VAR],
-    8: [],  # lambda (declaracao simples: $a;)
+    6: [TokenType.ATRIB, NaoTerminal.EXP_IDENT, AcaoSemantica.VERIFICA_ATRIB],
+    7: [AcaoSemantica.DECL_PRIMEIRA, TokenType.VIRGULA, TokenType.ID, AcaoSemantica.DECL_SEGUINTE, NaoTerminal.MAIS_VAR],
+    8: [AcaoSemantica.DECL_UNICA],  # declaracao simples: $a;
 
-    9: [TokenType.VIRGULA, TokenType.ID, NaoTerminal.MAIS_VAR],
+    9: [TokenType.VIRGULA, TokenType.ID, AcaoSemantica.DECL_SEGUINTE, NaoTerminal.MAIS_VAR],
     10: [],  # lambda
 
     11: [TokenType.PONTO_VIRGULA, NaoTerminal.CMDS],
@@ -71,7 +80,7 @@ PRODUCOES = {
     33: [TokenType.DIV, NaoTerminal.FATOR, NaoTerminal.MAIS_FATORES],
     34: [],  # lambda
 
-    35: [TokenType.ID],
+    35: [TokenType.ID, AcaoSemantica.VERIFICA_ID],
     36: [TokenType.NUM],
     37: [TokenType.ABRE_PAR, NaoTerminal.EXPRESSAO, TokenType.FECHA_PAR],
 }
