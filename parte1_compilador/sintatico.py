@@ -28,7 +28,7 @@ class AnalisadorSintatico:
         self.linha_id = 0
         self.col_id = 0
         self.op_rel = ""
-        self.unario_neg = False
+        self.pilha_unario = []
         self.pilha_desvios = []
 
     def _token_atual(self) -> Token:
@@ -123,15 +123,14 @@ class AnalisadorSintatico:
             self.gerador.emitir(f"CRCT {self.ultimo_num}")
 
         elif acao == AcaoSemantica.UNARIO_MENOS:
-            self.unario_neg = True
+            self.pilha_unario.append(True)
 
         elif acao == AcaoSemantica.UNARIO_NENHUM:
-            self.unario_neg = False
+            self.pilha_unario.append(False)
 
         elif acao == AcaoSemantica.APLICA_UNARIO:
-            if self.unario_neg:
+            if self.pilha_unario and self.pilha_unario.pop():
                 self.gerador.emitir("INVE")
-                self.unario_neg = False
 
         elif acao == AcaoSemantica.EMIT_SOMA:
             self.gerador.emitir("SOMA")
