@@ -21,67 +21,93 @@ class NaoTerminal:
 
 
 class AcaoSemantica:
+    INPP = "#INPP"
+    PARA = "#PARA"
     ID_VISTO = "#ID_VISTO"
     DECL_UNICA = "#DECL_UNICA"
     DECL_PRIMEIRA = "#DECL_PRIMEIRA"
     DECL_SEGUINTE = "#DECL_SEGUINTE"
-    VERIFICA_ATRIB = "#VERIFICA_ATRIB"
-    VERIFICA_ID = "#VERIFICA_ID"
+    ATRIB_ID = "#ATRIB_ID"
+    ECHO_ID = "#ECHO_ID"
+    EMIT_IMPR = "#EMIT_IMPR"
+    EMIT_LEIT = "#EMIT_LEIT"
+    IF_COND = "#IF_COND"
+    ELSE_INI = "#ELSE_INI"
+    IF_FIM = "#IF_FIM"
+    WHILE_INI = "#WHILE_INI"
+    WHILE_COND = "#WHILE_COND"
+    WHILE_FIM = "#WHILE_FIM"
+    EMIT_REL = "#EMIT_REL"
+    OP_EQ = "#OP_EQ"
+    OP_NE = "#OP_NE"
+    OP_GE = "#OP_GE"
+    OP_LE = "#OP_LE"
+    OP_GT = "#OP_GT"
+    OP_LT = "#OP_LT"
+    EMIT_SOMA = "#EMIT_SOMA"
+    EMIT_SUBT = "#EMIT_SUBT"
+    EMIT_MULT = "#EMIT_MULT"
+    EMIT_DIV = "#EMIT_DIV"
+    UNARIO_MENOS = "#UNARIO_MENOS"
+    UNARIO_NENHUM = "#UNARIO_NENHUM"
+    APLICA_UNARIO = "#APLICA_UNARIO"
+    FATOR_ID = "#FATOR_ID"
+    FATOR_NUM = "#FATOR_NUM"
 
 
-# gramatica fatorada com marcadores de checagem semantica
+# gramatica fatorada com acoes semanticas e de geracao de codigo
 PRODUCOES = {
-    1: [TokenType.TAG_OPEN, NaoTerminal.CMDS, TokenType.TAG_CLOSE],
+    1: [TokenType.TAG_OPEN, AcaoSemantica.INPP, NaoTerminal.CMDS, TokenType.TAG_CLOSE, AcaoSemantica.PARA],
     2: [TokenType.ID, AcaoSemantica.ID_VISTO, NaoTerminal.RESTO_ID, NaoTerminal.MAIS_CMDS],
-    3: [TokenType.ECHO, TokenType.ID, AcaoSemantica.VERIFICA_ID, TokenType.PONTO, TokenType.PHP_EOL, NaoTerminal.MAIS_CMDS],
+    3: [TokenType.ECHO, TokenType.ID, AcaoSemantica.ECHO_ID, TokenType.PONTO, TokenType.PHP_EOL, AcaoSemantica.EMIT_IMPR, NaoTerminal.MAIS_CMDS],
     4: [NaoTerminal.CMD_COND, NaoTerminal.CMDS],
     5: [],  # lambda
 
-    # resto_id: decide entre atribuicao (=) ou declaracao de variaveis (, ou ;)
-    6: [TokenType.ATRIB, NaoTerminal.EXP_IDENT, AcaoSemantica.VERIFICA_ATRIB],
+    # resto_id: atribuicao (=) ou declaracao (, ou ;)
+    6: [TokenType.ATRIB, NaoTerminal.EXP_IDENT, AcaoSemantica.ATRIB_ID],
     7: [AcaoSemantica.DECL_PRIMEIRA, TokenType.VIRGULA, TokenType.ID, AcaoSemantica.DECL_SEGUINTE, NaoTerminal.MAIS_VAR],
-    8: [AcaoSemantica.DECL_UNICA],  # declaracao simples: $a;
+    8: [AcaoSemantica.DECL_UNICA],
 
     9: [TokenType.VIRGULA, TokenType.ID, AcaoSemantica.DECL_SEGUINTE, NaoTerminal.MAIS_VAR],
     10: [],  # lambda
 
     11: [TokenType.PONTO_VIRGULA, NaoTerminal.CMDS],
 
-    # estruturas condicionais e repeticao
-    12: [TokenType.IF, TokenType.ABRE_PAR, NaoTerminal.CONDICAO, TokenType.FECHA_PAR, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE, NaoTerminal.PFALSA],
-    13: [TokenType.WHILE, TokenType.ABRE_PAR, NaoTerminal.CONDICAO, TokenType.FECHA_PAR, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE],
-    14: [TokenType.ELSE, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE],
+    # if / else e while
+    12: [TokenType.IF, TokenType.ABRE_PAR, NaoTerminal.CONDICAO, TokenType.FECHA_PAR, AcaoSemantica.IF_COND, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE, NaoTerminal.PFALSA, AcaoSemantica.IF_FIM],
+    13: [TokenType.WHILE, AcaoSemantica.WHILE_INI, TokenType.ABRE_PAR, NaoTerminal.CONDICAO, TokenType.FECHA_PAR, AcaoSemantica.WHILE_COND, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE, AcaoSemantica.WHILE_FIM],
+    14: [TokenType.ELSE, AcaoSemantica.ELSE_INI, TokenType.ABRE_CHAVE, NaoTerminal.CMDS, TokenType.FECHA_CHAVE],
     15: [],  # lambda
 
-    # atribuicao de leitura ou expressao
-    16: [TokenType.FLOATVAL, TokenType.ABRE_PAR, TokenType.READLINE, TokenType.ABRE_PAR, TokenType.FECHA_PAR, TokenType.FECHA_PAR],
+    # leitura ou expressao
+    16: [TokenType.FLOATVAL, TokenType.ABRE_PAR, TokenType.READLINE, TokenType.ABRE_PAR, TokenType.FECHA_PAR, TokenType.FECHA_PAR, AcaoSemantica.EMIT_LEIT],
     17: [NaoTerminal.EXPRESSAO],
 
-    # condicao e operadores relacionais
-    18: [NaoTerminal.EXPRESSAO, NaoTerminal.RELACAO, NaoTerminal.EXPRESSAO],
-    19: [TokenType.EQ],
-    20: [TokenType.NE],
-    21: [TokenType.GE],
-    22: [TokenType.LE],
-    23: [TokenType.GT],
-    24: [TokenType.LT],
+    # condicao e relacionais
+    18: [NaoTerminal.EXPRESSAO, NaoTerminal.RELACAO, NaoTerminal.EXPRESSAO, AcaoSemantica.EMIT_REL],
+    19: [TokenType.EQ, AcaoSemantica.OP_EQ],
+    20: [TokenType.NE, AcaoSemantica.OP_NE],
+    21: [TokenType.GE, AcaoSemantica.OP_GE],
+    22: [TokenType.LE, AcaoSemantica.OP_LE],
+    23: [TokenType.GT, AcaoSemantica.OP_GT],
+    24: [TokenType.LT, AcaoSemantica.OP_LT],
 
     # expressoes aritmeticas
     25: [NaoTerminal.TERMO, NaoTerminal.OUTROS_TERMOS],
-    26: [TokenType.MAIS, NaoTerminal.TERMO, NaoTerminal.OUTROS_TERMOS],
-    27: [TokenType.MENOS, NaoTerminal.TERMO, NaoTerminal.OUTROS_TERMOS],
+    26: [TokenType.MAIS, NaoTerminal.TERMO, AcaoSemantica.EMIT_SOMA, NaoTerminal.OUTROS_TERMOS],
+    27: [TokenType.MENOS, NaoTerminal.TERMO, AcaoSemantica.EMIT_SUBT, NaoTerminal.OUTROS_TERMOS],
     28: [],  # lambda
 
-    29: [NaoTerminal.OP_UN, NaoTerminal.FATOR, NaoTerminal.MAIS_FATORES],
-    30: [TokenType.MENOS],
-    31: [],  # lambda
+    29: [NaoTerminal.OP_UN, NaoTerminal.FATOR, AcaoSemantica.APLICA_UNARIO, NaoTerminal.MAIS_FATORES],
+    30: [TokenType.MENOS, AcaoSemantica.UNARIO_MENOS],
+    31: [AcaoSemantica.UNARIO_NENHUM],
 
-    32: [TokenType.MULT, NaoTerminal.FATOR, NaoTerminal.MAIS_FATORES],
-    33: [TokenType.DIV, NaoTerminal.FATOR, NaoTerminal.MAIS_FATORES],
+    32: [TokenType.MULT, NaoTerminal.FATOR, AcaoSemantica.EMIT_MULT, NaoTerminal.MAIS_FATORES],
+    33: [TokenType.DIV, NaoTerminal.FATOR, AcaoSemantica.EMIT_DIV, NaoTerminal.MAIS_FATORES],
     34: [],  # lambda
 
-    35: [TokenType.ID, AcaoSemantica.VERIFICA_ID],
-    36: [TokenType.NUM],
+    35: [TokenType.ID, AcaoSemantica.FATOR_ID],
+    36: [TokenType.NUM, AcaoSemantica.FATOR_NUM],
     37: [TokenType.ABRE_PAR, NaoTerminal.EXPRESSAO, TokenType.FECHA_PAR],
 }
 
